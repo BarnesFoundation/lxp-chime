@@ -5,19 +5,18 @@ const path = require('path');
 // Parameters
 let app = 'meeting';
 let region = 'us-east-1';
-let bucket = ``;
-let stack = ``;
+let bucket = 'lxp-test-demos';
+let stack = 'chime-demo';
+let profile = 'imagine';
 let useEventBridge = false;
 let disablePrintingLogs = false;
 
 function usage() {
-  console.log(`Usage: deploy.sh [-r region] [-b bucket] [-s stack] [-a application] [-e]`);
-  console.log(`  -r, --region                   Target region, default '${region}'`);
-  console.log(`  -b, --s3-bucket                S3 bucket for deployment, required`);
-  console.log(`  -s, --stack-name               CloudFormation stack name, required`);
-  console.log(`  -e, --event-bridge             Enable EventBridge integration, default is no integration`);
-  console.log(`  -l, --disable-printing-logs    Disable printing logs`);
-  console.log(`  -h, --help                     Show help and exit`);
+  console.log('Usage: deploy.sh [-a application] [-p profile] [-e]');
+  console.log('  -p, --profile                  Specify the profile to run the command')
+  console.log('  -e, --event-bridge             Enable EventBridge integration, default is no integration');
+  console.log('  -l, --disable-printing-logs    Disable printing logs');
+  console.log('  -h, --help                     Show help and exit');
 }
 
 function ensureBucket() {
@@ -28,10 +27,12 @@ function ensureBucket() {
     `${bucket}`,
     '--region',
     `${region}`,
+    '--profile',
+    `${profile}`,
   ]);
   if (s3Api.status !== 0) {
     console.log(`Creating S3 bucket ${bucket}`);
-    const s3 = spawnSync('aws', ['s3', 'mb', `s3://${bucket}`, '--region', `${region}`]);
+    const s3 = spawnSync('aws', ['s3', 'mb', `s3://${bucket}`, '--region', `${region}`, '--profile', `${profile}`]);
     if (s3.status !== 0) {
       console.log(`Failed to create bucket: ${JSON.stringify(s3)}`);
       console.log((s3.stderr || s3.stdout).toString());
@@ -58,18 +59,6 @@ function parseArgs() {
       case '--help':
         usage();
         process.exit(0);
-        break;
-      case '-r':
-      case '--region':
-        region = getArgOrExit(++i, args);
-        break;
-      case '-b':
-      case '--s3-bucket':
-        bucket = getArgOrExit(++i, args);
-        break;
-      case '-s':
-      case '--stack-name':
-        stack = getArgOrExit(++i, args);
         break;
       case '-e':
       case '--event-bridge':
@@ -148,10 +137,12 @@ spawnOrFail('sam', [
   'package',
   '--s3-bucket',
   `${bucket}`,
-  `--output-template-file`,
-  `build/packaged.yaml`,
+  '--output-template-file',
+  'build/packaged.yaml',
   '--region',
   `${region}`,
+  '--profile',
+  `${profile}`,
 ]);
 console.log('Deploying serverless application');
 
@@ -167,7 +158,9 @@ spawnOrFail('sam', [
   'CAPABILITY_IAM',
   '--region',
   `${region}`,
-  '--no-fail-on-empty-changeset'
+  '--profile',
+  `${profile}`,
+  '--no-fail-on-empty-changeset',
 ], null, !disablePrintingLogs);
 if (!disablePrintingLogs) {
   console.log('Amazon Chime SDK Meeting Demo URL: ');
@@ -183,4 +176,6 @@ spawnOrFail('aws', [
   'text',
   '--region',
   `${region}`,
+  '--profile',
+  `${profile}`,
 ], null, !disablePrintingLogs);

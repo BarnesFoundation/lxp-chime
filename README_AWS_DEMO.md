@@ -37,7 +37,7 @@ The following will create a CloudFormation stack containing a Lambda and API Gat
 
 ```
 cd /serverless
-node ./deploy.js -r us-east-1 -b <YOUR-S3-BUCKET-NAME> -s <YOUR-CLOUDFORMATION-STACK-NAME>
+node ./deploy.js -p <YOUR PROFILE NAME>
 ```
 
 The script will create an S3 bucket and CloudFormation stack with Lambda and API Gateway resources required to run the demo. After the script finishes, it will output a URL that can be opened in a browser.

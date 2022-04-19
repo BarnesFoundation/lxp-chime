@@ -6,7 +6,7 @@
     "@types/react-dom": "^16.9.5",
     "@types/styled-components": "^4.4.2",
     "@types/webpack-env": "^1.15.1",
-    "amazon-chime-sdk-component-library-react": "file:../../amazon-chime-sdk-component-library-react",
+    "amazon-chime-sdk-component-library-react": "^3.0.0",
     "amazon-chime-sdk-js": "^3.0.0",
     "aws-sdk": "^2.1034.0",
     "fs-extra": "^10.0.0",
@@ -20,7 +20,6 @@
   },
   "scripts": {
     "lint": "eslint src --ext .ts,.tsx --fix",
-    "preinstall": "scripts/setup-chime-react-submodule.js",
     "build:fast": "webpack --config ./webpack.config.js",
     "build": "npm run lint && npm install && npm run build:fast",
     "start:client": "webpack serve --config ./webpack.config.dev.js",
