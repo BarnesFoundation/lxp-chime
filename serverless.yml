@@ -1,0 +1,196 @@
+service: lxp-chime-demo
+# app and org for use with dashboard.serverless.com
+app: lxp-chime
+org: lpassamano
+
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: us-east-1
+  lambdaHashingVersion: 20201221
+  timeout: 30
+  memorySize: 128
+  stage: ${opt:stage, 'dev'}
+  environment:
+    MEETINGS_TABLE_NAME: !Ref Meetings
+    ATTENDEES_TABLE_NAME: !Ref Attendees
+    SQS_QUEUE_ARN: !GetAtt MeetingNotificationsQueue.Arn
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: 
+            - dynamodb:GetItem
+            - dynamodb:DeleteItem
+            - dynamodb:PutItem
+            - dynamodb:Scan
+            - dynamodb:Query
+            - dynamodb:UpdateItem
+            - dynamodb:BatchWriteItem
+            - dynamodb:BatchGetItem
+            - dynamodb:DescribeTable
+            - dynamodb:ConditionCheckItem
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - kms:Decrypt
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - 'chime:CreateMeeting'
+            - 'chime:DeleteMeeting'
+            - 'chime:GetMeeting'
+            - 'chime:ListMeetings'
+            - 'chime:BatchCreateAttendee'
+            - 'chime:CreateAttendee'
+            - 'chime:DeleteAttendee'
+            - 'chime:GetAttendee'
+            - 'chime:ListAttendees'
+          Resource: '*'
+        - Effect: Allow
+          Action:
+            - 'logs:CreateLogStream'
+            - 'logs:PutLogEvents'
+            - 'logs:DescribeLogStreams'
+          Resource: '*'
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+            - sqs:GetQueueUrl
+          Resource: !GetAtt MeetingNotificationsQueue.Arn
+
+functions:
+  ChimeSdkIndexLambda:
+      handler: serverless/index.handler
+      events:
+        - http:
+            path: /
+            method: GET
+        - http:
+            path: /{proxy+}
+            method: ANY
+  ChimeSdkCreateMeetingLambda:
+      handler: serverless/handlers.createMeeting
+      environment:
+          USE_EVENT_BRIDGE: true
+      events:
+        - http:
+            path: /meeting
+            method: POST
+  ChimeSdkJoinLambda:
+      handler: serverless/handlers.join
+      environment:
+          USE_EVENT_BRIDGE: true
+      events:
+        - http:
+            path: /join
+            method: POST
+  ChimeSdkEndLambda:
+      handler: serverless/handlers.end
+      events:
+        - http:
+            path: /end
+            method: POST
+  ChimeSdkAttendeeLambda:
+      handler: serverless/handlers.attendee
+      events:
+        - http:
+            path: /attendee
+            method: GET
+  ChimeSQSQueueLambda:
+      handler: serverless/handlers.sqs_handler
+      events:
+        - sqs:
+            arn: !GetAtt MeetingNotificationsQueue.Arn
+            batchSize: 10
+  ChimeEventBridgeLambda:
+      handler: serverless/handlers.event_bridge_handler
+      events:
+        - cloudwatchEvent:
+            event:
+              source:
+                - aws.chime
+              detail-type:
+                - "Chime Meeting State Change"
+  ChimeSdkBrowserLogsLambda:
+      handler: serverless/handlers.logs
+      events:
+        - http:
+            path: /logs
+            method: POST
+
+resources:
+  Resources:
+    Meetings:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Meetings-${opt:stage, "dev"}
+        AttributeDefinitions:
+          - AttributeName: "Title"
+            AttributeType: "S"
+          - AttributeName: "Passcode"
+            AttributeType: "S"
+        BillingMode: PAY_PER_REQUEST
+        KeySchema:
+          - AttributeName: "Title"
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: "Passcode"
+            KeySchema:
+              - AttributeName: "Passcode"
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        TimeToLiveSpecification:
+          AttributeName: "TTL"
+          Enabled: true
+    Attendees:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Attendees-${opt:stage, "dev"}
+        AttributeDefinitions:
+          - AttributeName: "AttendeeId"
+            AttributeType: "S"
+        BillingMode: PAY_PER_REQUEST
+        KeySchema:
+          - AttributeName: "AttendeeId"
+            KeyType: HASH
+    ChimeKMSKey:
+      Type: AWS::KMS::Key
+      Properties:
+        Description: Custom KMS Key with Chime access
+        Enabled: true
+        KeyPolicy:
+          Version: '2012-10-17'
+          Id: chime-kms-key
+          Statement:
+          - Sid: Allow access for Chime Service
+            Effect: Allow
+            Principal:
+              Service: chime.amazonaws.com
+            Action:
+              - kms:GenerateDataKey
+              - kms:Decrypt
+            Resource: '*'
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action: kms:*
+            Resource: '*'
+    MeetingNotificationsQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        KmsMasterKeyId: chime-kms-key
+    RestApi:
+      Type: AWS::ApiGateway::RestApi
+      Properties:
+        Name: RestApi
+        
+       
+  Outputs:
+    ApiURL:
+      Description: "API endpoint URL for Prod environment"
+      Value: !Sub https://${!Ref RestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/

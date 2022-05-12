@@ -12,7 +12,7 @@ let useEventBridge = false;
 let disablePrintingLogs = false;
 
 function usage() {
-  console.log('Usage: deploy.sh [-a application] [-p profile] [-e]');
+  console.log('Usage: deploy.sh [-p profile] [-e]');
   console.log('  -p, --profile                  Specify the profile to run the command')
   console.log('  -e, --event-bridge             Enable EventBridge integration, default is no integration');
   console.log('  -l, --disable-printing-logs    Disable printing logs');
