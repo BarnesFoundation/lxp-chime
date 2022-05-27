@@ -1,9 +1,6 @@
 // Copyright 2020-2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: MIT-0
-
-import routes from '../constants/routes';
-
-export const BASE_URL = routes.HOME;
+import axios from 'axios';
 
 export type MeetingFeatures = {
   Audio: {[key: string]: string};
@@ -40,11 +37,13 @@ export async function fetchMeeting(
     ns_es: String(echoReductionCapability),
   };
 
-  const res = await fetch(BASE_URL + 'join?' + new URLSearchParams(params), {
+  const res = await axios('/api/join?' + new URLSearchParams(params), {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
   });
 
-  const data = await res.json();
+  const data = await res.data;
+  console.log(data);
 
   if (data.error) {
     throw new Error(`Server error: ${data.error}`);
@@ -62,16 +61,17 @@ export async function getAttendee(
     attendee: encodeURIComponent(chimeAttendeeId),
   };
 
-  const res = await fetch(BASE_URL + 'attendee?' + new URLSearchParams(params), {
+  const res = await axios('/api/attendee?' + new URLSearchParams(params), {
     method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
   });
 
-  if (!res.ok) {
+  if (res.status !== 200) {
     throw new Error('Invalid server response');
   }
 
-  const data = await res.json();
-
+  const data = await res.data;
+  console.log(data);
   return {
     name: data.AttendeeInfo.Name,
   };
@@ -82,11 +82,13 @@ export async function endMeeting(meetingId: string): Promise<void> {
     title: encodeURIComponent(meetingId),
   };
 
-  const res = await fetch(BASE_URL + 'end?' + new URLSearchParams(params), {
+  const res = await axios('/api/end?' + new URLSearchParams(params), {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
   });
+  console.log(res);
 
-  if (!res.ok) {
+  if (res.status !== 200) {
     throw new Error('Server error ending meeting');
   }
 }

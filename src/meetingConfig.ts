@@ -2,12 +2,9 @@
 // SPDX-License-Identifier: MIT-0
 
 import { ConsoleLogger, MultiLogger, POSTLogger } from 'amazon-chime-sdk-js';
-import { SDK_LOG_LEVELS } from './constants';
 import { MeetingConfig } from './types';
 
-const urlParams = new URLSearchParams(window.location.search);
-const queryLogLevel = urlParams.get('logLevel') || 'info';
-const logLevel = SDK_LOG_LEVELS[queryLogLevel] || SDK_LOG_LEVELS.info;
+const logLevel = 4;
 
 const meetingConfig: MeetingConfig = {
   simulcastEnabled: false,

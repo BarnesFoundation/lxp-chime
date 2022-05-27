@@ -1,14 +1,13 @@
-import express from "express";
-import { Config } from "./utils/config";
+import express from 'express';
+import { Config } from './utils/config';
+import apiRoutes from './api/apiRoutes';
 
 const app = express();
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.use("/hello", (request, response) => {
-    response.status(200).json({message: "Hello World!"})
-})
+app.use('/api', apiRoutes);
 
 app.listen(Config.port, () => console.log(`Server listening on port ${Config.port}`));
 

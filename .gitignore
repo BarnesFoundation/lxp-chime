@@ -1,7 +1,10 @@
 node_modules
 dist
+build
+.serverless
 
 .env
 .env.*
 
 TODO
+.vscode

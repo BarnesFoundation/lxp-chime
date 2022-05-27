@@ -24,9 +24,10 @@
     "resolveJsonModule": true,
     "suppressImplicitAnyIndexErrors": true,
   },
-  "include": ["src/**/*"],
+  "include": ["src"],
   "exclude": [
+    "build",
+    "server",
     "node_modules",
-    "build"
   ]
 }
