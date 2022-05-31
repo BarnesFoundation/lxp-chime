@@ -22,22 +22,22 @@ export const StyledLayout = styled.main<Props>`
   ${({ showNav, showRoster, showChat }) => {
     if (showNav && (showRoster || showChat)) {
       return `
-        grid-template-columns: auto auto 1fr;
-        grid-template-areas: 'nav side-panel content';
+        grid-template-columns: auto auto 1fr 2fr;
+        grid-template-areas: 'nav side-panel content canvas';
       `;
     }
 
     if (showNav && (showRoster || showChat)) {
       return `
-        grid-template-columns: auto auto 1fr;
-        grid-template-areas: 'nav side-panel content';
+        grid-template-columns: auto auto 1fr 2fr;
+        grid-template-areas: 'nav side-panel content canvas';
       `;
     }
 
     if (showNav) {
       return `
-        grid-template-columns: auto 1fr;
-        grid-template-areas: 'nav content';
+        grid-template-columns: auto 1fr 2fr;
+        grid-template-areas: 'nav content canvas';
       `;
     }
 
@@ -49,8 +49,8 @@ export const StyledLayout = styled.main<Props>`
     }
 
     return `
-      grid-template-columns: 1fr;
-      grid-template-areas: 'content';
+      grid-template-columns: 1fr 2fr;
+      grid-template-areas: 'content canvas';
     `;
   }}
 
@@ -62,6 +62,10 @@ export const StyledLayout = styled.main<Props>`
   .chat {
     grid-area: side-panel;
     z-index: 2;
+  }
+
+  .canvas {
+    grid-area: canvas
   }
 
   @media screen and (min-width: 769px) {
