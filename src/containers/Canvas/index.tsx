@@ -27,7 +27,6 @@ export default function Chat() {
   const [ensembleIndex, _setEnsembleIndex] = useState(defaultEnsembleIndex);
   const [selectedSource, _setSelectedSource] = useState(query);
   const [selectedSourceURL, setSelectedSourceURL] = useState([] as string[]);
-  const [_zoomOut, setZoomOut] = useState(() => () => null as unknown as void);
 
   // Set query with invno and ensembleIndex values
   if (invno) {
@@ -45,7 +44,6 @@ export default function Chat() {
     <div className='canvas'>
       <IIIFViewer
         tileSources={selectedSourceURL}
-        setZoomOut={setZoomOut}
       />
     </div>
   );
