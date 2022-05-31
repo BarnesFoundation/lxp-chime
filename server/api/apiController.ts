@@ -10,10 +10,7 @@ chime.endpoint = new AWS.Endpoint('https://service.chime.aws.amazon.com/console'
 // Optional features like Echo Reduction is only available on Regional Meetings API
 // https://docs.aws.amazon.com/chime/latest/APIReference/API_Operations_Amazon_Chime_SDK_Meetings.html
 const chimeRegional = new AWS.ChimeSDKMeetings({ region: 'us-east-1' });
-const chimeRegionalEndpoint =
-    process.env.REGIONAL_ENDPOINT ||
-    'https://meetings-chime.us-east-1.amazonaws.com';
-chimeRegional.endpoint = new AWS.Endpoint(chimeRegionalEndpoint);
+chimeRegional.endpoint = new AWS.Endpoint('https://meetings-chime.us-east-1.amazonaws.com');
 
 const oneDayFromNow = Math.floor(Date.now() / 1000) + 60 * 60 * 24;
 
@@ -143,44 +140,51 @@ export const join = async (
     return response.status(status).send(body);
   }
   
-  let meetingInfo = await getMeeting(title);
-  const client = getClientForMeeting(meetingInfo, ns_es);
-  if (!meetingInfo) {
-    const createMeetingReq = {
-      ClientRequestToken: uuid(),
-      MediaRegion: region,
-      NotificationsConfiguration: {},
-      ExternalMeetingId: title.substring(0, 64),
-    };
-    if (ns_es === 'true') {
-      createMeetingReq['MeetingFeatures'] = {
-        Audio: {
-          // The EchoReduction parameter helps the user enable and use Amazon Echo Reduction.
-          EchoReduction: 'AVAILABLE',
-        },
+  try {
+    let meetingInfo = await getMeeting(title);
+    const client = getClientForMeeting(meetingInfo, ns_es);
+    if (!meetingInfo) {
+      const createMeetingReq = {
+        ClientRequestToken: uuid(),
+        MediaRegion: region,
+        NotificationsConfiguration: {},
+        ExternalMeetingId: title.substring(0, 64),
       };
+      if (ns_es === 'true') {
+        createMeetingReq['MeetingFeatures'] = {
+          Audio: {
+            // The EchoReduction parameter helps the user enable and use Amazon Echo Reduction.
+            EchoReduction: 'AVAILABLE',
+          },
+        };
+      }
+      console.info('Creating new meeting before joining: ' + JSON.stringify(createMeetingReq));
+      // @ts-ignore
+      meetingInfo = await client.createMeeting(createMeetingReq).promise();
+      await putMeeting(title, meetingInfo);
     }
-    console.info('Creating new meeting before joining: ' + JSON.stringify(createMeetingReq));
-    // @ts-ignore
-    meetingInfo = await client.createMeeting(createMeetingReq).promise();
-    await putMeeting(title, meetingInfo);
+    
+    console.info('Adding new attendee');
+    const attendeeInfo = (await client.createAttendee({
+      MeetingId: meetingInfo.Meeting.MeetingId,
+      ExternalUserId: uuid(),
+    }).promise());
+    putAttendee(title, attendeeInfo.Attendee.AttendeeId, name);
+    
+    const joinInfo = {
+      JoinInfo: {
+        Title: title,
+        Meeting: meetingInfo.Meeting,
+        Attendee: attendeeInfo.Attendee,
+      },
+    };
+    
+    body = JSON.stringify(joinInfo);
+    return response.status(status).send(body);
+  } catch (e) {
+      console.log(e)
+    status = 500;
+    body = JSON.stringify(e);
+    return response.status(status).send(body);
   }
-  
-  console.info('Adding new attendee');
-  const attendeeInfo = (await client.createAttendee({
-    MeetingId: meetingInfo.Meeting.MeetingId,
-    ExternalUserId: uuid(),
-  }).promise());
-  putAttendee(title, attendeeInfo.Attendee.AttendeeId, name);
-  
-  const joinInfo = {
-    JoinInfo: {
-      Title: title,
-      Meeting: meetingInfo.Meeting,
-      Attendee: attendeeInfo.Attendee,
-    },
-  };
-  
-  body = JSON.stringify(joinInfo);
-  return response.status(status).send(body);
 };
