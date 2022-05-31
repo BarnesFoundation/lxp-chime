@@ -38,6 +38,22 @@ const IIIFViewer: React.FC<IIIFViewerProps> = ({ tileSources, setZoomOut }: IIIF
       setZoomOut(() => zoomOut);
     }, []);
 
+    osd.addHandler('canvas-click', function (event) {
+      // The canvas-click event gives us a position in web coordinates.
+      const webPoint = event.position;
+
+      // Convert that to viewport coordinates, the lingua franca of OpenSeadragon coordinates.
+      const viewportPoint = osd.viewport.pointFromPixel(webPoint);
+
+      // Convert from viewport coordinates to image coordinates.
+      const imagePoint = osd.viewport.viewportToImageCoordinates(viewportPoint);
+
+      // Show the results.
+      console.log(webPoint.toString(), viewportPoint.toString(), imagePoint.toString());
+
+      // TODO: share coordinates via chime sdk
+    });
+
     return () => {
       osd.destroy();
     };
