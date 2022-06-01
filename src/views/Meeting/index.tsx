@@ -15,6 +15,7 @@ import { MeetingMode, Layout } from '../../types';
 import { VideoTileGridProvider } from '../../providers/VideoTileGridProvider';
 import { useAppState } from '../../providers/AppStateProvider';
 import { DataMessagesProvider } from '../../providers/DataMessagesProvider';
+import { DataEventsProvider } from '../../providers/DataEventsProvider';
 import Canvas from '../../containers/Canvas';
 
 const MeetingView = (props: { mode: MeetingMode }) => {
@@ -26,20 +27,22 @@ const MeetingView = (props: { mode: MeetingMode }) => {
   return (
     <UserActivityProvider>
       <DataMessagesProvider>
-        <VideoTileGridProvider>
-          <StyledLayout showNav={showNavbar} showRoster={showRoster} showChat={showChat}>
-            <StyledContent>
-              <VideoTileGrid
-                layout={layout === Layout.Gallery ? 'standard' : 'featured'}
-                className="videos"
-                noRemoteVideoView={<MeetingDetails />}
-              />
-              {mode === MeetingMode.Spectator ? <DynamicMeetingControls /> : <MeetingControls />}
-            </StyledContent>
-            <NavigationControl />
-            <Canvas />
-          </StyledLayout>
-        </VideoTileGridProvider>
+        <DataEventsProvider>
+          <VideoTileGridProvider>
+            <StyledLayout showNav={showNavbar} showRoster={showRoster} showChat={showChat}>
+              <StyledContent>
+                <VideoTileGrid
+                  layout={layout === Layout.Gallery ? 'standard' : 'featured'}
+                  className="videos"
+                  noRemoteVideoView={<MeetingDetails />}
+                />
+                {mode === MeetingMode.Spectator ? <DynamicMeetingControls /> : <MeetingControls />}
+              </StyledContent>
+              <NavigationControl />
+              <Canvas />
+            </StyledLayout>
+          </VideoTileGridProvider>
+        </DataEventsProvider>
       </DataMessagesProvider>
     </UserActivityProvider>
   );
