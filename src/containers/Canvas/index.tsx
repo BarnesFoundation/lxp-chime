@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import IIIFViewer from '../../components/IIIFViewer';
+import { useDataEvents } from '../../providers/DataEventsProvider';
 
 enum SelectTypes {
     Artworks = 'artworks',
@@ -27,6 +28,9 @@ export default function Chat() {
   const [ensembleIndex, _setEnsembleIndex] = useState(defaultEnsembleIndex);
   const [selectedSource, _setSelectedSource] = useState(query);
   const [selectedSourceURL, setSelectedSourceURL] = useState([] as string[]);
+  const [leader, setLeader] = useState(false);
+
+  const { sendEvent } = useDataEvents();
 
   // Set query with invno and ensembleIndex values
   if (invno) {
@@ -40,10 +44,32 @@ export default function Chat() {
     setSelectedSourceURL(getTileSourceURL(selectedSource));
   }, [selectedSource]);
 
+  const handleLeaderChange = () => {
+    if (leader) {
+      // If user is currently the leader, do not let them uncheck the box
+      return;
+    } else {
+      // If user is not currently the leader, let them become the leader
+      setLeader(true);
+      // Send event to to notify other call participants
+      sendEvent(JSON.stringify({ type: 'leader-change' }));
+    }
+  };
+
+  useEffect(() => {
+    console.log('leader udpated:', leader);
+  }, [leader]);
+
   return (
-    <div className='canvas'>
+    <div className='canvas' style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ zIndex: 10 }}>
+        <input type="checkbox" id="leader" name="leader" checked={leader} onChange={handleLeaderChange} />
+        <label htmlFor='leader'>Leader</label>
+      </div>
       <IIIFViewer
         tileSources={selectedSourceURL}
+        leader={leader}
+        setLeader={setLeader}
       />
     </div>
   );
