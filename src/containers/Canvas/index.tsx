@@ -45,15 +45,11 @@ export default function Chat() {
   }, [selectedSource]);
 
   const handleLeaderChange = () => {
-    if (leader) {
-      // If user is currently the leader, do not let them uncheck the box
-      return;
-    } else {
-      // If user is not currently the leader, let them become the leader
-      setLeader(true);
-      // Send event to to notify other call participants
-      sendEvent(JSON.stringify({ type: 'leader-change' }));
-    }
+    // Send event to to notify other call participants
+    sendEvent(JSON.stringify({ type: 'leader-change' }));
+    // Set leader to true since we don't allow a user to uncheck the Leader input
+    setLeader(true);
+    // (a user can only "loose" leader privileges when another user clicks the Leader checkbox)
   };
 
   useEffect(() => {

@@ -47,12 +47,15 @@ const IIIFViewer: React.FC<IIIFViewerProps> = ({ tileSources, leader, setLeader 
     sendEvent(message);
   };
 
-  const handlePan = (event: OpenSeadragon.PanEvent) => {
-    const viewportCenter = event.eventSource.viewport.getCenter();
+  const handleCanvasClick = (event: OpenSeadragon.CanvasClickEvent) => {
+    const center = event.position;
+    const viewportCenter = event.eventSource.viewport.pointFromPixel(center);
+    const viewportZoom = event.eventSource.viewport.getZoom();
 
     const payload: EventPayload = {
-      type: EventTypes.PAN,
+      type: EventTypes.CANVAS_CLICK,
       center: viewportCenter,
+      zoom: viewportZoom,
       leader: leader,
     };
     const message = JSON.stringify(payload);
@@ -61,13 +64,17 @@ const IIIFViewer: React.FC<IIIFViewerProps> = ({ tileSources, leader, setLeader 
     sendEvent(message);
   };
 
-  const handleZoom = (event: OpenSeadragon.ZoomEvent) => {
+  const handleCanvasScroll = (event: OpenSeadragon.CanvasScrollEvent) => {
+    const center = event.position;
+    const viewportCenter = event.eventSource.viewport.pointFromPixel(center);
     const viewportZoom = event.eventSource.viewport.getZoom();
 
     const payload: EventPayload = {
-      type: EventTypes.ZOOM,
+      type: EventTypes.CANVAS_SCROLL,
+      center: viewportCenter,
       zoom: viewportZoom,
-      leader: leader};
+      leader: leader,
+    };
     const message = JSON.stringify(payload);
     console.log('payload:', payload, message);
 
@@ -76,16 +83,19 @@ const IIIFViewer: React.FC<IIIFViewerProps> = ({ tileSources, leader, setLeader 
 
   // Helper to add all handlers to a viewer
   const addHandlers = (viewer: OpenSeadragon.Viewer) => {
+    console.log('Adding event handlers...');
     viewer.addHandler(EventTypes.HOME, handleHome);
-    viewer.addHandler(EventTypes.PAN, handlePan);
-    viewer.addHandler(EventTypes.ZOOM, handleZoom);
+    viewer.addHandler(EventTypes.CANVAS_CLICK, handleCanvasClick);
+    viewer.addHandler(EventTypes.CANVAS_SCROLL, handleCanvasScroll);
   };
 
   // Helper to remove all handlers to a viewer
   const removeHandlers = (viewer: OpenSeadragon.Viewer) => {
+    console.log('Removing event handlers...');
     viewer.removeHandler(EventTypes.HOME, handleHome);
-    viewer.removeHandler(EventTypes.PAN, handlePan);
-    viewer.removeHandler(EventTypes.ZOOM, handleZoom);};
+    viewer.removeHandler(EventTypes.CANVAS_CLICK, handleCanvasClick);
+    viewer.removeHandler(EventTypes.CANVAS_SCROLL, handleCanvasScroll);
+  };
 
   // Pass ref to useEffect, canvas for IIIF viewer will be dropped underneath the ref.
   useEffect(() => {
@@ -94,6 +104,10 @@ const IIIFViewer: React.FC<IIIFViewerProps> = ({ tileSources, leader, setLeader 
       tileSources,
       visibilityRatio: 1.0,
       constrainDuringPan: true,
+      showHomeControl: true,
+      showZoomControl: false,
+      showRotationControl: false,
+      showFullPageControl: false,
     });
 
     addHandlers(initOsd);
@@ -123,24 +137,27 @@ const IIIFViewer: React.FC<IIIFViewerProps> = ({ tileSources, leader, setLeader 
         if (!eventObj.isSelf && eventObj.event) {
           const event: EventPayload = JSON.parse(eventObj.event);
 
-          if (event.type === EventTypes.HOME && event.leader) {
-            viewport.fitBoundsWithConstraints(osd?.viewport.getHomeBounds() as OpenSeadragon.Rect);
-          } 
-          
-          if (event.type === EventTypes.PAN && event.leader) {
-            const center = event.center as OpenSeadragon.Point;
-            viewport.panTo(center, true);
-          } 
-          
-          if (event.type === EventTypes.ZOOM && event.leader) {
-            const zoom = event.zoom as number;
-            viewport.zoomTo(zoom, event.center, true);
+          if (event.leader) {
+            switch (event.type) {
+              case EventTypes.HOME:
+                viewport.fitBoundsWithConstraints(osd?.viewport.getHomeBounds() as OpenSeadragon.Rect);
+                break;
+              case EventTypes.PAN:
+                viewport.panTo(event.center as OpenSeadragon.Point);
+                break;
+              case EventTypes.ZOOM:
+              case EventTypes.CANVAS_CLICK:
+              case EventTypes.CANVAS_SCROLL:
+                viewport.zoomTo(event.zoom as number, event.center);
+                viewport.panTo(event.center as OpenSeadragon.Point);
+                break;
+            }
           }
         }
       } else if (leader && events.length) {
         const eventObj = events[events.length - 1];
         const event: EventPayload = JSON.parse(eventObj.event);
-  
+
         if (event.type === EventTypes.LEADER_CHANGE && !eventObj.isSelf) {
           // Handle when another participant elects to become the leader
           setLeader(false);
